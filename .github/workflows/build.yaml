@@ -8,12 +8,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
-    
+        uses: actions/checkout@v4
+
       - name: Setup JDK
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@v4
         with:
-          java-version: '11'
+          distribution: 'temurin'
+          java-version: '17'        # XPlan 项目大概率用 17，保险起见用 17
 
       - id: get-project
         name: Get project name
@@ -22,8 +23,18 @@ jobs:
       - name: Clone project
         run: git clone --depth=1 ${{ env.PROJECT }} project
 
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('project/**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
       - name: Build the app
-        working-directory: './project'
+        working-directory: ./project
         run: |
           if [ ! -f "gradlew" ]; then
             gradle wrapper
@@ -32,7 +43,7 @@ jobs:
           ./gradlew assembleDebug --stacktrace
 
       - name: Upload APK
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: my-build-apk
-          path: ./**/*.apk
+          path: project/**/build/outputs/apk/**/*.apk
